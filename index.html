@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Laxmi Gauze Billing</title>
+<link href="https://fonts.googleapis.com/css2?family=Bitter:wght@600;800&family=Hind:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<style>
+:root{--ink:#1c2a7c;--paper:#eef1f8;--card:#fff;--line:#c9d0e6;--red:#c4262e;--green:#1f8a4c;--mut:#5a6390}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--paper);color:#171c3d;font-family:Hind,system-ui,sans-serif;font-size:16px}
+h1,h2,h3{font-family:Bitter,serif;color:var(--ink);margin:0}
+#app{max-width:720px;margin:0 auto;padding:16px 14px 96px}
+.top{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+.top h1{font-size:22px}
+button{font:inherit;cursor:pointer}
+.btn{background:var(--ink);color:#fff;border:0;border-radius:10px;padding:11px 16px;font-weight:600}
+.btn.o{background:#fff;color:var(--ink);border:1.5px solid var(--ink)}
+.btn.r{background:var(--red)}
+.card{background:var(--card);border:1.5px solid var(--line);border-radius:12px;padding:14px}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
+.stat b{display:block;font-family:Bitter,serif;font-size:22px;color:var(--ink);margin-top:4px}
+.stat.wide{grid-column:span 2}
+.red{color:var(--red)!important}.green{color:var(--green)}
+.row{display:flex;justify-content:space-between;align-items:center;padding:11px 0;border-bottom:1px solid var(--line)}
+.row:last-child{border:0}
+.hbox{display:block;width:100%;text-align:left;background:#fff;border:1.5px solid var(--line);border-left:6px solid var(--ink);border-radius:10px;padding:14px;margin-bottom:10px}
+.hbox b{display:block;font-size:17px;color:var(--ink)}
+.hbox span{font-weight:600;color:var(--red)}
+.fab{position:fixed;right:18px;bottom:88px;width:56px;height:56px;border-radius:50%;background:var(--ink);color:#fff;border:0;font-size:32px;box-shadow:0 4px 14px #1c2a7c55}
+nav{position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1.5px solid var(--line);display:flex;padding-bottom:env(safe-area-inset-bottom,0)}
+nav button{flex:1;border:0;background:none;padding:14px 4px;color:var(--mut);font-weight:600}
+nav button.on{color:var(--ink);box-shadow:inset 0 3px 0 var(--ink)}
+table.t{width:100%;border-collapse:collapse;background:#fff;border:1.5px solid var(--line);border-radius:10px}
+.t th{background:var(--ink);color:#fff;text-align:left;padding:10px 8px;font-weight:600;font-size:14px}
+.t td{padding:10px 8px;border-bottom:1px solid var(--line);font-size:15px}
+.chip{border:0;border-radius:20px;padding:5px 12px;font-weight:600;color:#fff;font-size:14px}
+.chip.p{background:var(--green)}.chip.d{background:var(--red)}
+.login{margin-top:12vh;text-align:center}
+input,select{font:inherit;width:100%;padding:10px;border:1.5px solid var(--line);border-radius:8px;background:#fff;color:inherit}
+.login input{margin:8px 0}
+.err{color:var(--red);min-height:22px}
+.modal{position:fixed;inset:0;background:#0007;display:flex;align-items:center;justify-content:center;padding:20px;z-index:9}
+.modal .card{max-width:340px;width:100%}
+.modal .acts{display:flex;gap:10px;margin-top:14px;justify-content:flex-end}
+.wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+#sheet,.sheet{min-width:680px;background:#fff;border:2px solid var(--ink);padding:10px;color:var(--ink);font-size:13px}
+#sheet input,#sheet select{padding:4px;border:1px solid var(--line);border-radius:4px;font-size:13px;min-width:0}
+.sheet .v{font-weight:600}
+.sh{text-align:center}.sh .m{display:flex;justify-content:space-between;font-weight:600;font-size:12px}
+.sh h2{font-size:26px;letter-spacing:.3px;margin:4px 0}
+.sh p{margin:2px 0;font-weight:600}
+.meta{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:8px 0}
+.box{border:1.5px solid var(--ink);border-radius:8px;padding:6px}
+.mr{display:grid;grid-template-columns:78px 1fr;align-items:center;gap:6px;padding:3px 0;border-bottom:1px solid var(--line)}
+.mr:last-child{border:0}
+.step{display:flex;gap:4px}.step button{width:30px;border:1px solid var(--ink);background:#fff;color:var(--ink);border-radius:4px;font-weight:700}
+#items{width:100%;border-collapse:collapse}
+#items th,#items td{border:1px solid var(--ink);padding:2px;text-align:center;vertical-align:middle}
+#items td.a{text-align:right;padding:2px 4px;font-weight:600}
+.sig{display:grid;grid-template-columns:1fr 1fr;border:1.5px solid var(--ink);border-top:0}
+.sig>div{padding:8px;min-height:80px}.sig>div:first-child{border-right:1.5px solid var(--ink)}
+.acts2{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:90px;background:#171c3d;color:#fff;padding:10px 18px;border-radius:20px;z-index:10}
+#printArea{display:none}
+.dlb{margin-left:8px;border:1.5px solid var(--ink);background:#fff;color:var(--ink);border-radius:6px;padding:3px 9px;font-size:13px;font-weight:600;vertical-align:middle}
+body.po #app,body.po nav,body.po .fab,body.po .toast{display:none!important}
+body.po #printArea{display:block!important;max-width:720px;margin:0 auto;padding:10px}
+.mo:invalid:not(:focus)::-webkit-datetime-edit,.mo:invalid:not(:focus)::-webkit-calendar-picker-indicator{opacity:0}
+#items td{height:30px}
+.xr{border:0;background:none;color:var(--red);font-size:20px;font-weight:700;padding:0 4px}
+/* Overlay used during image capture - covers screen briefly */
+.capture-overlay{position:fixed;inset:0;background:#fff;z-index:99998}
+.capture-wrap{position:fixed;left:0;top:0;z-index:99999;width:780px;background:#fff;color:#1c2a7c;padding:10px;overflow:visible}
+@media print{body{background:#fff}#app>*:not(.wrap):not(.keep),nav,.fab,.toast,.noprint,.rowx,.step button{display:none!important}#app{padding:0;max-width:none}.wrap{overflow:visible}#sheet,.sheet{min-width:0;border:2px solid #000}#sheet input,#sheet select{border:0;-webkit-appearance:none;appearance:none;background:none;padding:0}}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<nav id="nav" hidden></nav>
+<div id="printArea"></div>
+<script>
+/* ===== SUPABASE SETTINGS ===== */
+const SUPABASE_URL = "https://efjsuymfufzcfgabtnqy.supabase.co";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVmanN1eW1mdWZ6Y2ZnYWJ0bnF5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA4Njc4OTcsImV4cCI6MjEwNjQ0Mzg5N30.pbrM4m9uJ3qkg1YOsLvDgjaUvv_cu18mEgCq736_ZDQ";
+/* ============================= */
+const USER="Ramesh", PASS="7013595136";
+const HOSPITALS=["Arogya hospital Nalgonda","C K hospital Nalgonda","Duraga shankar hospital Reddy colony miryalaguda","Icon hospital Nalgonda","K.E.S Central","Leela hospital Doctors colony miryalaguda","LS Health care pharma Distribut Doctor","S.N.Pharma Nalgonda","Satyavathi hospital Nalgonda","Sri Tulasi hospital Nalgonda","Suraksha hospital Nalgonda","USAI Forge (P) Ltd Sreepuram, Narketpally"];
+const PARTS=["Roller Bandage 15cm X 4mtrs","Roller Bandage 10cm X 4mtrs","Absorbent Gauze Cloth 100cm X 20mtrs","Cotton Waste","Colour Waste Cloth","Bandage Cloth"];
+const sb=(SUPABASE_URL&&SUPABASE_KEY)?supabase.createClient(SUPABASE_URL,SUPABASE_KEY):null;
+const S={hosp:[],bills:[],page:"dash",hid:null,rows:[],no:410,hs:"",d1:"",d2:"",ord:""};
+const $=s=>document.querySelector(s), app=$("#app");
+const inr=n=>"\u20B9"+Number(n||0).toLocaleString("en-IN",{maximumFractionDigits:2});
+const today=()=>{const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")};
+const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const fd=d=>d?d.split("-").reverse().join("/"):"";
+
+/* ---------- data layer ---------- */
+async function load(){
+  if(sb){
+    let h=(await sb.from("hospitals").select("*").order("name")).data||[];
+    if(!h.length){await sb.from("hospitals").insert(HOSPITALS.map(name=>({name})));h=(await sb.from("hospitals").select("*").order("name")).data||[];}
+    S.hosp=h;S.bills=(await sb.from("bills").select("*").order("bill_date",{ascending:false}).order("bill_no",{ascending:false})).data||[];
+  }else{
+    const l=JSON.parse(localStorage.getItem("lg")||"null")||{hosp:HOSPITALS.map((name,i)=>({id:i+1,name})),bills:[]};
+    S.hosp=l.hosp;S.bills=l.bills;
+  }
+  S.no=Math.max(409,...S.bills.map(b=>b.bill_no))+1;
+}
+const persist=()=>{if(!sb)localStorage.setItem("lg",JSON.stringify({hosp:S.hosp,bills:S.bills}))};
+async function addHospital(name){
+  if(sb){const {data,error}=await sb.from("hospitals").insert({name}).select().single();if(error)return toast("Could not add");S.hosp.push(data);}
+  else S.hosp.push({id:Date.now(),name});
+  S.hosp.sort((a,b)=>a.name.localeCompare(b.name));persist();
+}
+async function addBill(b){
+  if(sb){const {data,error}=await sb.from("bills").insert(b).select().single();if(error)return toast("Save failed: "+error.message),false;S.bills.unshift(data);}
+  else S.bills.unshift({...b,id:Date.now()});
+  persist();return true;
+}
+async function setPaid(id,paid){
+  if(sb){const {error}=await sb.from("bills").update({paid}).eq("id",id);if(error)return toast("Update failed");}
+  S.bills.find(b=>b.id===id).paid=paid;persist();
+}
+const pend=hid=>S.bills.filter(b=>b.hospital_id===hid&&!b.paid).reduce((s,b)=>s+Number(b.total),0);
+const hname=id=>(S.hosp.find(h=>h.id===id)||{}).name||"\u2014";
+
+/* ---------- helpers ---------- */
+function toast(m){const t=document.createElement("div");t.className="toast";t.textContent=m;document.body.append(t);setTimeout(()=>t.remove(),2200)}
+function modal(html,onOk,okText="OK"){
+  const m=document.createElement("div");m.className="modal";
+  m.innerHTML='<div class="card">'+html+'<div class="acts"><button class="btn o" id="mc">Cancel</button><button class="btn" id="mo">'+okText+'</button></div></div>';
+  document.body.append(m);m.querySelector("#mc").onclick=()=>m.remove();
+  m.querySelector("#mo").onclick=async()=>{if(await onOk(m)!==false)m.remove()};
+  const i=m.querySelector("input");if(i)i.focus();
+}
+const A=["","One","Two","Three","Four","Five","Six","Seven","Eight","Nine","Ten","Eleven","Twelve","Thirteen","Fourteen","Fifteen","Sixteen","Seventeen","Eighteen","Nineteen"],B=["","","Twenty","Thirty","Forty","Fifty","Sixty","Seventy","Eighty","Ninety"];
+const two=n=>n<20?A[n]:B[n/10|0]+(n%10?" "+A[n%10]:"");
+const three=n=>(n>99?A[n/100|0]+" Hundred"+(n%100?" ":""):"")+(n%100?two(n%100):"");
+function words(n){
+  n=Math.round(n*100)/100;let r=Math.floor(n),p=Math.round((n-r)*100);if(!r&&!p)return"";let s="";
+  for(const [v,l] of [[1e7,"Crore"],[1e5,"Lakh"],[1e3,"Thousand"]])if(r>=v){s+=three(Math.floor(r/v))+" "+l+" ";r%=v}
+  if(r)s+=three(r);s=s.trim();if(p)s+=" and "+two(p)+" Paise";return s+" Only";
+}
+
+/* ---------- login / nav ---------- */
+function loginView(){
+  $("#nav").hidden=true;
+  app.innerHTML='<div class="login card"><h1>M/S. Laxmi Gauze Bandage &amp; Textiles</h1><p style="color:var(--mut)">Sign in to continue</p><input id="u" placeholder="Username" autocapitalize="none"><input id="p" type="password" placeholder="Password"><div class="err" id="e"></div><button class="btn" style="width:100%" id="go">Sign in</button></div>';
+  $("#go").onclick=()=>{if($("#u").value.trim()===USER&&$("#p").value===PASS){sessionStorage.setItem("in","1");start()}else $("#e").textContent="Wrong username or password."};
+}
+function nav(){
+  const n=$("#nav");n.hidden=false;
+  const cur=S.page==="hdetail"?"hosp":S.page;
+  n.innerHTML=[["dash","Dashboard"],["hosp","Hospitals"],["bill","New Bill"],["hist","History"]].map(([k,l])=>'<button class="'+(cur===k?"on":"")+'" data-k="'+k+'">'+l+'</button>').join("");
+  n.querySelectorAll("button").forEach(b=>b.onclick=()=>go(b.dataset.k));
+}
+async function go(p,hid){S.page=p;S.hid=hid||null;nav();if(p!=="bill"&&S.loaded){try{await load()}catch(e){}}({dash,hosp,hdetail,bill,hist})[p]();window.scrollTo(0,0)}
+
+/* ---------- pages ---------- */
+function dash(){
+  const m=today().slice(0,7),mb=S.bills.filter(b=>b.bill_date.startsWith(m));
+  const sales=mb.reduce((s,b)=>s+Number(b.total),0),all=S.bills.reduce((s,b)=>s+Number(b.total),0);
+  const top=S.hosp.map(h=>({n:h.name,v:pend(h.id)})).filter(x=>x.v>0).sort((a,b)=>b.v-a.v).slice(0,5);
+  app.innerHTML='<div class="top"><h1>Dashboard</h1><button class="btn o" id="lo">Sign out</button></div><div class="stats"><div class="card stat">This month sales<b>'+inr(sales)+'</b></div><div class="card stat">This month orders<b>'+mb.length+'</b></div><div class="card stat wide">Total amount, all hospitals<b>'+inr(all)+'</b></div></div><h3 style="margin-bottom:8px">Top 5 pending bills</h3><div class="card">'+(top.length?top.map(x=>'<div class="row"><span>'+esc(x.n)+'</span><b class="red">'+inr(x.v)+'</b></div>').join(""):'<p style="margin:0;color:var(--mut)">No pending bills. All hospitals are paid up.</p>')+'</div>';
+  $("#lo").onclick=()=>{sessionStorage.clear();loginView()};
+}
+function hosp(){
+  app.innerHTML='<div class="top"><h1>Hospitals</h1></div>'+S.hosp.map(h=>'<button class="hbox" data-id="'+h.id+'"><b>'+esc(h.name)+'</b>Pending due <span>'+inr(pend(h.id))+'</span></button>').join("")+'<button class="fab" id="add" aria-label="Add hospital">+</button>';
+  app.querySelectorAll(".hbox").forEach(b=>b.onclick=()=>go("hdetail",b.dataset.id));
+  $("#add").onclick=()=>modal('<h3>Add hospital</h3><input id="hn" placeholder="Hospital name and place" style="margin-top:10px">',async m=>{const v=m.querySelector("#hn").value.trim();if(!v)return false;await addHospital(v);hosp()},"Add");
+}
+function hdetail(){
+  const h=S.hosp.find(x=>String(x.id)===String(S.hid)),bs=S.bills.filter(b=>b.hospital_id===h.id);
+  app.innerHTML='<div class="top"><h2>History of '+esc(h.name)+'</h2></div><p>Pending due <b class="red">'+inr(pend(h.id))+'</b></p><div class="wrap"><table class="t"><tr><th>Date</th><th>Order ID</th><th>Amount</th><th>Status</th></tr>'+(bs.length?bs.map(b=>'<tr><td>'+fd(b.bill_date)+'</td><td>'+b.bill_no+'</td><td>'+inr(b.total)+'</td><td><button class="chip '+(b.paid?"p":"d")+'" data-id="'+b.id+'">'+(b.paid?"Paid":"Pending")+'</button></td></tr>').join(""):'<tr><td colspan="4">No bills yet.</td></tr>')+'</table></div>';
+  app.querySelectorAll(".chip").forEach(c=>c.onclick=()=>{
+    const b=S.bills.find(x=>String(x.id)===c.dataset.id);
+    modal('<h3>Confirm payment</h3><p>Mark order '+b.bill_no+' ('+inr(b.total)+') as <b>'+(b.paid?"Pending":"Paid")+'</b>?</p>',async()=>{await setPaid(b.id,!b.paid);hdetail()});
+  });
+}
+function hist(){
+  app.innerHTML='<div class="top keep"><h1>History</h1><div class="noprint" style="display:flex;gap:8px"><button class="btn o" id="hp">Print</button></div></div><div class="wrap"><table class="t"><tr><th>Date</th><th>Hospital</th><th>Amount</th><th>Status</th></tr>'+(S.bills.length?S.bills.map(b=>'<tr><td>'+fd(b.bill_date)+'</td><td>'+esc(hname(b.hospital_id))+'</td><td>'+inr(b.total)+'</td><td><b class="'+(b.paid?"green":"red")+'">'+(b.paid?"Paid":"Pending")+'</b><button class="dlb" data-id="'+b.id+'" title="Download this bill">\u2B07 Bill</button></td></tr>').join(""):'<tr><td colspan="4">No bills yet.</td></tr>')+'</table></div>';
+  $("#hp").onclick=()=>window.print();
+  app.querySelectorAll(".dlb").forEach(btn=>btn.onclick=()=>{
+    const b=S.bills.find(x=>String(x.id)===btn.dataset.id);
+    if(!b)return;
+    downloadImage(billSheetNode(b),"Bill-"+b.bill_no+".png");
+  });
+}
+
+/* ---------- new bill ---------- */
+const newRow=()=>({p:"",batch:"",mfg:"",exp:"",unit:"",rate:""});
+function resetBill(){S.rows=Array.from({length:3},newRow);S.hs="";S.d1=today();S.d2=today();S.ord=""}
+function bill(){
+  if(!S.rows.length)resetBill();
+  app.innerHTML='<div class="top"><h1>New Bill</h1></div>'+
+  '<div class="wrap"><div id="sheet">'+
+   '<div class="sh"><div class="m"><span>Mfg.Lic.: MFG/MD/2018/000099</span><span><u>Subject to Nalgonda Jurisdiction</u><br>TAX INVOICE</span><span>SSI No.010231200658<br>Mobile : 7013595136</span></div>'+
+   '<h2>M/S. LAXMI GAUZE BANDAGE &amp; TEXTILES</h2><p>Mfrs. of Gauze Cloth, Bandage Cloth &amp; Roller Bandages</p>'+
+   '<p style="font-size:12px"># 4-9, (V) A.P.Lingotam, (Mdl) Narketpally, Dist. Nalgonda - 508254, T.G.<br>GSTIN : 36AVHPG5668A1ZO</p></div>'+
+   '<div class="meta"><div class="box">To<select id="hs" style="margin-top:4px"><option value="">Select hospital</option>'+S.hosp.map(h=>'<option value="'+h.id+'" '+(String(S.hs)===String(h.id)?"selected":"")+'>'+esc(h.name)+'</option>').join("")+'</select></div>'+
+   '<div class="box"><div class="mr">Bill. No.<div class="step"><button id="mi">\u2212</button><input id="no" type="number" value="'+S.no+'"><button id="pl">+</button></div></div>'+
+    '<div class="mr">Date<input id="d1" type="date" value="'+S.d1+'"></div><div class="mr">Order No.<input id="ord" value="'+esc(S.ord)+'"></div></div></div>'+
+   '<table id="items"><thead><tr><th style="width:30px">Sl. No.</th><th>PARTICULARS</th><th style="width:70px">Batch No.</th><th style="width:88px">D/Mfg.</th><th style="width:88px">D/Exp.</th><th style="width:52px">Unit</th><th style="width:62px">Rate</th><th style="width:58px">Rs.</th><th style="width:34px">Ps.</th><th class="rowx" style="width:28px;border:0"></th></tr></thead><tbody></tbody>'+
+   '<tfoot><tr><td colspan="7" style="text-align:right;font-weight:800;font-size:16px;padding:6px">Total</td><td class="a" id="trs"></td><td class="a" id="tps"></td><td class="rowx" style="border:0"></td></tr></tfoot></table>'+
+   '<div class="sig"><div>Rupees in words<div id="wd" style="font-weight:600;margin-top:6px"></div></div><div style="text-align:center"><b>For M/S. LAXMI GAUZE BANDAGE &amp; TEXTILES</b><br><br><br>Signature</div></div>'+
+  '</div></div>'+
+  '<div class="acts2"><button class="btn o rowx" id="ar">+ Add row</button><button class="btn" id="sv">Save bill</button><button class="btn o" id="pr">Print</button><button class="btn o" id="dl">\uD83D\uDCF7 Download Image</button><button class="btn r" id="de">Delete</button></div>';
+
+  const tb=$("#items tbody");
+  tb.innerHTML=S.rows.map((r,i)=>rowHtml(r,i)).join("");
+  calc();
+  $("#hs").onchange=e=>S.hs=e.target.value;
+  $("#d1").onchange=e=>S.d1=e.target.value;
+  $("#ord").oninput=e=>S.ord=e.target.value;
+  $("#no").onchange=e=>S.no=+e.target.value||S.no;
+  $("#mi").onclick=()=>{S.no=Math.max(1,S.no-1);$("#no").value=S.no};
+  $("#pl").onclick=()=>{S.no++;$("#no").value=S.no};
+  tb.oninput=tb.onchange=e=>{const t=e.target,i=+t.dataset.i,k=t.dataset.k;if(!k)return;if(k==="batch"){const c=t.selectionStart;t.value=t.value.toUpperCase();try{t.setSelectionRange(c,c)}catch(x){}}S.rows[i][k]=t.value;calc()};
+  tb.onclick=e=>{const x=e.target.closest(".xr");if(!x)return;S.rows.splice(+x.dataset.i,1);if(!S.rows.length)S.rows.push(newRow());bill()};
+  $("#ar").onclick=()=>{S.rows.push(newRow());bill()};
+  $("#sv").onclick=saveBill;
+  $("#pr").onclick=()=>window.print();
+  $("#dl").onclick=()=>{
+    const c=plain($("#sheet"));
+    downloadImage(c,"Bill-"+S.no+".png");
+  };
+  $("#de").onclick=()=>modal("<h3>Delete this bill?</h3><p>All entered data will be erased.</p>",()=>{resetBill();bill()},"Delete");
+}
+const amt=r=>Math.round((+r.unit||0)*(+r.rate||0)*100)/100;
+function rowHtml(r,i){
+  return '<tr><td>'+(i+1)+'</td><td><select data-i="'+i+'" data-k="p"><option value=""></option>'+PARTS.map(p=>'<option '+(r.p===p?"selected":"")+'>'+p+'</option>').join("")+'</select></td>'+
+  '<td><input data-i="'+i+'" data-k="batch" autocapitalize="characters" value="'+esc(r.batch)+'"></td><td><input type="month" class="mo" required data-i="'+i+'" data-k="mfg" value="'+r.mfg+'"></td><td><input type="month" class="mo" required data-i="'+i+'" data-k="exp" value="'+r.exp+'"></td>'+
+  '<td><input type="number" inputmode="decimal" data-i="'+i+'" data-k="unit" value="'+r.unit+'"></td><td><input type="number" inputmode="decimal" data-i="'+i+'" data-k="rate" value="'+r.rate+'"></td><td class="a" id="rs'+i+'"></td><td class="a" id="ps'+i+'"></td><td class="rowx"><button class="xr" data-i="'+i+'" aria-label="Delete row">\u00D7</button></td></tr>';
+}
+function split(n){const [a,b]=n.toFixed(2).split(".");return[a,b]}
+function calc(){
+  let t=0;
+  S.rows.forEach((r,i)=>{const a=amt(r);t+=a;const [x,y]=a?split(a):["",""];$("#rs"+i).textContent=x;$("#ps"+i).textContent=y});
+  const [x,y]=t?split(t):["",""];$("#trs").textContent=x;$("#tps").textContent=y;$("#wd").textContent=words(t);S.total=Math.round(t*100)/100;
+}
+async function saveBill(){
+  if(!S.hs)return toast("Select a hospital first");
+  const items=S.rows.filter(r=>r.p&&amt(r)>0).map(r=>({...r,amount:amt(r)}));
+  if(!items.length)return toast("Add at least one item with unit and rate");
+  if(S.bills.some(b=>b.bill_no===S.no))return toast("Bill number "+S.no+" already exists");
+  const ok=await addBill({bill_no:S.no,order_no:S.ord,hospital_id:S.hosp.find(h=>String(h.id)===String(S.hs)).id,bill_date:S.d1,order_date:S.d1,items,total:S.total,paid:false});
+  if(ok){toast("Bill "+S.no+" saved");S.no++;resetBill();bill()}
+}
+
+/* ========== IMAGE DOWNLOAD (FIXED) ========== */
+/*
+ * The key fix: instead of placing the element off-screen (left:-9999px)
+ * which html2canvas cannot capture, we place it VISIBLY on screen
+ * at position fixed top:0 left:0 with a white overlay behind it.
+ * We wait 2 animation frames for the browser to fully paint it,
+ * then html2canvas captures the fully rendered visible element.
+ * After capture we remove everything and trigger a PNG download.
+ */
+function plain(src){
+  const c=src.cloneNode(true);
+  c.querySelectorAll(".rowx,.step button,.noprint").forEach(x=>x.remove());
+  const a=[...src.querySelectorAll("input,select")],b=[...c.querySelectorAll("input,select")];
+  a.forEach((el,i)=>{
+    let v=el.tagName==="SELECT"?(el.value?el.options[el.selectedIndex].text:""):el.value;
+    if(el.type==="date")v=fd(v);
+    if(el.type==="month"&&v){const parts=v.split("-");v=parts[1]+"/"+parts[0]}
+    const sp=document.createElement("span");sp.textContent=v;
+    sp.style.cssText="display:block;text-align:"+(el.closest("#items")?"center":"left")+";font-weight:600";
+    b[i].replaceWith(sp);
+  });
+  return c;
+}
+
+async function downloadImage(node, filename){
+  // Show a loading toast
+  toast("Generating image...");
+
+  // 1. Create a white overlay to hide the page behind our render
+  const overlay=document.createElement("div");
+  overlay.className="capture-overlay";
+
+  // 2. Create the visible wrapper at top-left of viewport
+  const wrap=document.createElement("div");
+  wrap.className="capture-wrap";
+  wrap.appendChild(node);
+
+  // 3. Add both to the DOM - element is now VISIBLE and PAINTED
+  document.body.appendChild(overlay);
+  document.body.appendChild(wrap);
+
+  // 4. Wait for TWO animation frames so the browser fully paints
+  await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
+
+  try{
+    // 5. Capture with html2canvas - element is visible so it works
+    const canvas=await html2canvas(wrap,{
+      scale: 2,
+      backgroundColor: "#ffffff",
+      useCORS: true,
+      logging: false,
+      width: wrap.scrollWidth,
+      height: wrap.scrollHeight,
+      x: 0,
+      y: 0
+    });
+
+    // 6. Convert canvas to PNG blob and trigger download
+    canvas.toBlob(function(blob){
+      if(!blob){toast("Could not generate image");return}
+      const url=URL.createObjectURL(blob);
+      const a=document.createElement("a");
+      a.href=url;
+      a.download=filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(()=>URL.revokeObjectURL(url),5000);
+      toast("Image downloaded!");
+    },"image/png");
+  }catch(e){
+    console.error("html2canvas error:",e);
+    toast("Download failed: "+(e.message||"unknown error"));
+  }
+
+  // 7. Clean up - remove overlay and wrapper
+  wrap.remove();
+  overlay.remove();
+}
+
+function billSheetNode(b){
+  const h=S.hosp.find(x=>String(x.id)===String(b.hospital_id))||{};
+  const items=b.items||[];
+  const rowsHtml=items.map((r,i)=>{
+    const a=Number(r.amount||0),[rs,ps]=a?split(a):["",""];
+    return '<tr><td>'+(i+1)+'</td><td style="text-align:left;padding-left:4px">'+esc(r.p||"")+'</td><td>'+esc(r.batch||"")+'</td><td>'+(r.mfg?esc(r.mfg.split("-").reverse().join("/")):"")+'</td><td>'+(r.exp?esc(r.exp.split("-").reverse().join("/")):"")+'</td><td>'+esc(r.unit||"")+'</td><td>'+esc(r.rate||"")+'</td><td class="a">'+rs+'</td><td class="a">'+ps+'</td></tr>';
+  }).join("");
+  const [trs,tps]=b.total?split(Number(b.total)):["",""];
+  const html='<div class="sheet">'+
+   '<div class="sh"><div class="m"><span>Mfg.Lic.: MFG/MD/2018/000099</span><span><u>Subject to Nalgonda Jurisdiction</u><br>TAX INVOICE</span><span>SSI No.010231200658<br>Mobile : 7013595136</span></div>'+
+   '<h2>M/S. LAXMI GAUZE BANDAGE &amp; TEXTILES</h2><p>Mfrs. of Gauze Cloth, Bandage Cloth &amp; Roller Bandages</p>'+
+   '<p style="font-size:12px"># 4-9, (V) A.P.Lingotam, (Mdl) Narketpally, Dist. Nalgonda - 508254, T.G.<br>GSTIN : 36AVHPG5668A1ZO</p></div>'+
+   '<div class="meta"><div class="box">To<div class="v" style="margin-top:4px">'+esc(h.name||"")+'</div></div>'+
+   '<div class="box"><div class="mr">Bill. No.<div class="v">'+b.bill_no+'</div></div><div class="mr">Date<div class="v">'+fd(b.bill_date)+'</div></div><div class="mr">Order No.<div class="v">'+esc(b.order_no||"")+'</div></div></div></div>'+
+   '<table id="items"><thead><tr><th style="width:30px">Sl. No.</th><th>PARTICULARS</th><th style="width:70px">Batch No.</th><th style="width:88px">D/Mfg.</th><th style="width:88px">D/Exp.</th><th style="width:52px">Unit</th><th style="width:62px">Rate</th><th style="width:58px">Rs.</th><th style="width:34px">Ps.</th></tr></thead><tbody>'+rowsHtml+'</tbody>'+
+   '<tfoot><tr><td colspan="7" style="text-align:right;font-weight:800;font-size:16px;padding:6px">Total</td><td class="a">'+trs+'</td><td class="a">'+tps+'</td></tr></tfoot></table>'+
+   '<div class="sig"><div>Rupees in words<div style="font-weight:600;margin-top:6px">'+words(Number(b.total||0))+'</div></div><div style="text-align:center"><b>For M/S. LAXMI GAUZE BANDAGE &amp; TEXTILES</b><br><br><br>Signature</div></div>'+
+  '</div>';
+  const tmp=document.createElement("div");tmp.innerHTML=html;
+  return tmp.firstElementChild;
+}
+
+/* ---------- start ---------- */
+function inAppBrowser(){
+  const ua=navigator.userAgent||"";
+  return /FBAN|FBAV|Instagram|Line\/|MicroMessenger|; wv\)/i.test(ua);
+}
+async function start(){
+  app.innerHTML='<p style="text-align:center;margin-top:30vh">Loading\u2026</p>';
+  try{await load();S.loaded=true}catch(e){toast("Could not load data")}
+  go("dash");
+  if(inAppBrowser())setTimeout(()=>toast("Tip: open this page in Chrome/Safari, not inside another app, for Download to work."),800);
+}
+sessionStorage.getItem("in")?start():loginView();
+</script>
+</body>
+</html>
