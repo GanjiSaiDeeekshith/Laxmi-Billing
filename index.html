@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -87,10 +88,11 @@ const SUPABASE_URL = "https://efjsuymfufzcfgabtnqy.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVmanN1eW1mdWZ6Y2ZnYWJ0bnF5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA4Njc4OTcsImV4cCI6MjEwNjQ0Mzg5N30.pbrM4m9uJ3qkg1YOsLvDgjaUvv_cu18mEgCq736_ZDQ";
 /* ============================= */
 const USER="Ramesh", PASS="7013595136";
-const HOSPITALS=["Arogya hospital Nalgonda","C K hospital Nalgonda","Duraga shankar hospital Reddy colony miryalaguda","Icon hospital Nalgonda","K.E.S Central","Leela hospital Doctors colony miryalaguda","LS Health care pharma Distribut Doctor","S.N.Pharma Nalgonda","Satyavathi hospital Nalgonda","Sri Tulasi hospital Nalgonda","Suraksha hospital Nalgonda","USAI Forge (P) Ltd Sreepuram, Narketpally"];
 const PARTS=["Roller Bandage 15cm X 4mtrs","Roller Bandage 10cm X 4mtrs","Absorbent Gauze Cloth 100cm X 20mtrs","Cotton Waste","Colour Waste Cloth","Bandage Cloth"];
+try{JSON.parse(localStorage.getItem("lg_parts")||"[]").forEach(p=>{if(!PARTS.includes(p))PARTS.push(p)})}catch(e){}
+const HOSPITALS=["Arogya hospital Nalgonda","C K hospital Nalgonda","Duraga shankar hospital Reddy colony miryalaguda","Icon hospital Nalgonda","K.E.S Central","Leela hospital Doctors colony miryalaguda","LS Health care pharma Distribut Doctor","S.N.Pharma Nalgonda","Satyavathi hospital Nalgonda","Sri Tulasi hospital Nalgonda","Suraksha hospital Nalgonda","USAI Forge (P) Ltd Sreepuram, Narketpally"];
 const sb=(SUPABASE_URL&&SUPABASE_KEY)?supabase.createClient(SUPABASE_URL,SUPABASE_KEY):null;
-const S={hosp:[],bills:[],page:"dash",hid:null,rows:[],no:410,hs:"",d1:"",d2:"",ord:""};
+const S={hosp:[],bills:[],page:"dash",hid:null,rows:[],no:410,hs:"",d1:"",d2:"",ord:"",editId:null};
 const $=s=>document.querySelector(s), app=$("#app");
 const inr=n=>"\u20B9"+Number(n||0).toLocaleString("en-IN",{maximumFractionDigits:2});
 const today=()=>{const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")};
@@ -108,6 +110,7 @@ async function load(){
     S.hosp=l.hosp;S.bills=l.bills;
   }
   S.no=Math.max(409,...S.bills.map(b=>b.bill_no))+1;
+  S.bills.forEach(b=>(b.items||[]).forEach(i=>{if(i.p&&!PARTS.includes(i.p))PARTS.push(i.p)}));
 }
 const persist=()=>{if(!sb)localStorage.setItem("lg",JSON.stringify({hosp:S.hosp,bills:S.bills}))};
 async function addHospital(name){
@@ -125,13 +128,13 @@ async function setPaid(id,paid){
   S.bills.find(b=>b.id===id).paid=paid;persist();
 }
 const pend=hid=>S.bills.filter(b=>b.hospital_id===hid&&!b.paid).reduce((s,b)=>s+Number(b.total),0);
-const hname=id=>(S.hosp.find(h=>h.id===id)||{}).name||"\u2014";
+const hname=id=>{let n=(S.hosp.find(h=>h.id===id)||{}).name||"\u2014";return n.startsWith("__DEL__")?n.slice(9):n};
 
 /* ---------- helpers ---------- */
 function toast(m){const t=document.createElement("div");t.className="toast";t.textContent=m;document.body.append(t);setTimeout(()=>t.remove(),2200)}
 function modal(html,onOk,okText="OK"){
   const m=document.createElement("div");m.className="modal";
-  m.innerHTML='<div class="card">'+html+'<div class="acts"><button class="btn o" id="mc">Cancel</button><button class="btn" id="mo">'+okText+'</button></div></div>';
+  m.innerHTML='<div class="card">'+html+'<div class="acts"><button class="btn o" id="mc">Cancel</button><button class="btn '+(okText==='Delete'?'r':'')+'" id="mo">'+okText+'</button></div></div>';
   document.body.append(m);m.querySelector("#mc").onclick=()=>m.remove();
   m.querySelector("#mo").onclick=async()=>{if(await onOk(m)!==false)m.remove()};
   const i=m.querySelector("input");if(i)i.focus();
@@ -163,21 +166,45 @@ async function go(p,hid){S.page=p;S.hid=hid||null;nav();if(p!=="bill"&&S.loaded)
 function dash(){
   const m=today().slice(0,7),mb=S.bills.filter(b=>b.bill_date.startsWith(m));
   const sales=mb.reduce((s,b)=>s+Number(b.total),0),all=S.bills.reduce((s,b)=>s+Number(b.total),0);
-  const top=S.hosp.map(h=>({n:h.name,v:pend(h.id)})).filter(x=>x.v>0).sort((a,b)=>b.v-a.v).slice(0,5);
+  const top=S.hosp.filter(h=>!(h.name||"").startsWith("__DEL__")).map(h=>({n:h.name,v:pend(h.id)})).filter(x=>x.v>0).sort((a,b)=>b.v-a.v).slice(0,5);
   app.innerHTML='<div class="top"><h1>Dashboard</h1><button class="btn o" id="lo">Sign out</button></div><div class="stats"><div class="card stat">This month sales<b>'+inr(sales)+'</b></div><div class="card stat">This month orders<b>'+mb.length+'</b></div><div class="card stat wide">Total amount, all hospitals<b>'+inr(all)+'</b></div></div><h3 style="margin-bottom:8px">Top 5 pending bills</h3><div class="card">'+(top.length?top.map(x=>'<div class="row"><span>'+esc(x.n)+'</span><b class="red">'+inr(x.v)+'</b></div>').join(""):'<p style="margin:0;color:var(--mut)">No pending bills. All hospitals are paid up.</p>')+'</div>';
   $("#lo").onclick=()=>{sessionStorage.clear();loginView()};
 }
 function hosp(){
-  app.innerHTML='<div class="top"><h1>Hospitals</h1></div>'+S.hosp.map(h=>'<button class="hbox" data-id="'+h.id+'"><b>'+esc(h.name)+'</b>Pending due <span>'+inr(pend(h.id))+'</span></button>').join("")+'<button class="fab" id="add" aria-label="Add hospital">+</button>';
-  app.querySelectorAll(".hbox").forEach(b=>b.onclick=()=>go("hdetail",b.dataset.id));
+  app.innerHTML='<div class="top"><h1>Hospitals</h1></div>'+S.hosp.filter(h=>!(h.name||"").startsWith("__DEL__")).map(h=>'<div class="hbox" data-id="'+h.id+'" style="position:relative;cursor:pointer"><b>'+esc(h.name)+'</b>Pending due <span>'+inr(pend(h.id))+'</span><button class="btn r" style="position:absolute;right:14px;top:18px;padding:2px 12px;font-size:18px;font-weight:bold" data-del="'+h.id+'">-</button></div>').join("")+'<button class="fab" id="add" aria-label="Add hospital">+</button>';
+  app.querySelectorAll(".hbox").forEach(b=>b.onclick=(e)=>{
+    if(e.target.closest('[data-del]')){
+      e.stopPropagation();
+      modal('<h3>Remove Hospital</h3><p>Remove this hospital from the list? (Old bills will remain in History)</p>', async ()=>{
+        const hid = b.dataset.id;
+        const hObj = S.hosp.find(x=>String(x.id)===String(hid));
+        const newName = "__DEL__" + (hObj.name || "");
+        if(sb){
+          const {error}=await sb.from("hospitals").update({name: newName}).eq("id",hid);
+          if(error) return toast("Remove failed: "+error.message), false;
+        }
+        hObj.name = newName;
+        persist();
+        hosp();
+      }, "Delete");
+    } else {
+      go("hdetail",b.dataset.id);
+    }
+  });
   $("#add").onclick=()=>modal('<h3>Add hospital</h3><input id="hn" placeholder="Hospital name and place" style="margin-top:10px">',async m=>{const v=m.querySelector("#hn").value.trim();if(!v)return false;await addHospital(v);hosp()},"Add");
 }
 function hdetail(){
   const h=S.hosp.find(x=>String(x.id)===String(S.hid)),bs=S.bills.filter(b=>b.hospital_id===h.id);
-  app.innerHTML='<div class="top"><h2>History of '+esc(h.name)+'</h2></div><p>Pending due <b class="red">'+inr(pend(h.id))+'</b></p><div class="wrap"><table class="t"><tr><th>Date</th><th>Order ID</th><th>Amount</th><th>Status</th></tr>'+(bs.length?bs.map(b=>'<tr><td>'+fd(b.bill_date)+'</td><td>'+b.bill_no+'</td><td>'+inr(b.total)+'</td><td><button class="chip '+(b.paid?"p":"d")+'" data-id="'+b.id+'">'+(b.paid?"Paid":"Pending")+'</button></td></tr>').join(""):'<tr><td colspan="4">No bills yet.</td></tr>')+'</table></div>';
+  const hNameClean = (h.name||"").startsWith("__DEL__") ? h.name.slice(9) : (h.name||"");
+  app.innerHTML='<div class="top"><h2>History of '+esc(hNameClean)+'</h2></div><p>Pending due <b class="red">'+inr(pend(h.id))+'</b></p><div class="wrap"><table class="t"><tr><th>Date</th><th>Order ID</th><th>Amount</th><th>Status</th></tr>'+(bs.length?bs.map(b=>'<tr><td>'+fd(b.bill_date)+'</td><td>'+b.bill_no+'</td><td>'+inr(b.total)+'</td><td><button class="chip '+(b.paid?"p":"d")+'" data-id="'+b.id+'">'+(b.paid?"Paid":"Pending")+'</button><button class="btn o" style="padding:4px 8px;font-size:12px;margin-left:6px" data-edit="'+b.id+'">Edit</button></td></tr>').join(""):'<tr><td colspan="4">No bills yet.</td></tr>')+'</table></div>';
   app.querySelectorAll(".chip").forEach(c=>c.onclick=()=>{
     const b=S.bills.find(x=>String(x.id)===c.dataset.id);
     modal('<h3>Confirm payment</h3><p>Mark order '+b.bill_no+' ('+inr(b.total)+') as <b>'+(b.paid?"Pending":"Paid")+'</b>?</p>',async()=>{await setPaid(b.id,!b.paid);hdetail()});
+  });
+  app.querySelectorAll("button[data-edit]").forEach(btn=>btn.onclick=(e)=>{
+    const b=S.bills.find(x=>String(x.id)===btn.dataset.edit);
+    S.editId = b.id; S.no = b.bill_no; S.hs = b.hospital_id; S.d1 = b.bill_date; S.ord = b.order_no; S.rows = JSON.parse(JSON.stringify(b.items));
+    go("bill");
   });
 }
 function hist(){
@@ -192,7 +219,7 @@ function hist(){
 
 /* ---------- new bill ---------- */
 const newRow=()=>({p:"",batch:"",mfg:"",exp:"",unit:"",rate:""});
-function resetBill(){S.rows=Array.from({length:3},newRow);S.hs="";S.d1=today();S.d2=today();S.ord=""}
+function resetBill(){S.editId=null;S.rows=Array.from({length:3},newRow);S.hs="";S.d1=today();S.d2=today();S.ord=""}
 function bill(){
   if(!S.rows.length)resetBill();
   app.innerHTML='<div class="top"><h1>New Bill</h1></div>'+
@@ -200,10 +227,10 @@ function bill(){
    '<div class="sh"><div class="m"><span>Mfg.Lic.: MFG/MD/2018/000099</span><span><u>Subject to Nalgonda Jurisdiction</u><br>TAX INVOICE</span><span>SSI No.010231200658<br>Mobile : 7013595136</span></div>'+
    '<h2>M/S. LAXMI GAUZE BANDAGE &amp; TEXTILES</h2><p>Mfrs. of Gauze Cloth, Bandage Cloth &amp; Roller Bandages</p>'+
    '<p style="font-size:12px"># 4-9, (V) A.P.Lingotam, (Mdl) Narketpally, Dist. Nalgonda - 508254, T.G.<br>GSTIN : 36AVHPG5668A1ZO</p></div>'+
-   '<div class="meta"><div class="box">To<select id="hs" style="margin-top:4px"><option value="">Select hospital</option>'+S.hosp.map(h=>'<option value="'+h.id+'" '+(String(S.hs)===String(h.id)?"selected":"")+'>'+esc(h.name)+'</option>').join("")+'</select></div>'+
+   '<div class="meta"><div class="box">To<select id="hs" style="margin-top:4px"><option value="">Select hospital</option>'+S.hosp.filter(h=>!(h.name||"").startsWith("__DEL__") || String(S.hs)===String(h.id)).map(h=>{const cn=(h.name||"").startsWith("__DEL__")?h.name.slice(9):h.name;return '<option value="'+h.id+'" '+(String(S.hs)===String(h.id)?"selected":"")+'>'+esc(cn)+'</option>'}).join("")+'</select></div>'+
    '<div class="box"><div class="mr">Bill. No.<div class="step"><button id="mi">\u2212</button><input id="no" type="number" value="'+S.no+'"><button id="pl">+</button></div></div>'+
     '<div class="mr">Date<input id="d1" type="date" value="'+S.d1+'"></div><div class="mr">Order No.<input id="ord" value="'+esc(S.ord)+'"></div></div></div>'+
-   '<table id="items"><thead><tr><th style="width:30px">Sl. No.</th><th>PARTICULARS</th><th style="width:70px">Batch No.</th><th style="width:88px">D/Mfg.</th><th style="width:88px">D/Exp.</th><th style="width:52px">Unit</th><th style="width:62px">Rate</th><th style="width:58px">Rs.</th><th style="width:34px">Ps.</th><th class="rowx" style="width:28px;border:0"></th></tr></thead><tbody></tbody>'+
+   '<table id="items"><thead><tr><th style="width:30px">Sl. No.</th><th>PARTICULARS <button class="rowx" id="addp" style="background:#fff;color:var(--ink);border:0;border-radius:4px;padding:1px 6px;font-weight:800;font-size:14px;margin-left:4px;vertical-align:middle" title="Add new product">+</button></th><th style="width:70px">Batch No.</th><th style="width:88px">D/Mfg.</th><th style="width:88px">D/Exp.</th><th style="width:52px">Unit</th><th style="width:62px">Rate</th><th style="width:58px">Rs.</th><th style="width:34px">Ps.</th><th class="rowx" style="width:28px;border:0"></th></tr></thead><tbody></tbody>'+
    '<tfoot><tr><td colspan="7" style="text-align:right;font-weight:800;font-size:16px;padding:6px">Total</td><td class="a" id="trs"></td><td class="a" id="tps"></td><td class="rowx" style="border:0"></td></tr></tfoot></table>'+
    '<div class="sig"><div>Rupees in words<div id="wd" style="font-weight:600;margin-top:6px"></div></div><div style="text-align:center"><b>For M/S. LAXMI GAUZE BANDAGE &amp; TEXTILES</b><br><br><br>Signature</div></div>'+
   '</div></div>'+
@@ -220,6 +247,7 @@ function bill(){
   $("#pl").onclick=()=>{S.no++;$("#no").value=S.no};
   tb.oninput=tb.onchange=e=>{const t=e.target,i=+t.dataset.i,k=t.dataset.k;if(!k)return;if(k==="batch"){const c=t.selectionStart;t.value=t.value.toUpperCase();try{t.setSelectionRange(c,c)}catch(x){}}S.rows[i][k]=t.value;calc()};
   tb.onclick=e=>{const x=e.target.closest(".xr");if(!x)return;S.rows.splice(+x.dataset.i,1);if(!S.rows.length)S.rows.push(newRow());bill()};
+  $("#addp").onclick=()=>modal('<h3>Add Product</h3><input id="pn" placeholder="Product name" style="margin-top:10px">',m=>{const v=m.querySelector("#pn").value.trim();if(v&&!PARTS.includes(v)){PARTS.push(v);const lp=JSON.parse(localStorage.getItem("lg_parts")||"[]");lp.push(v);localStorage.setItem("lg_parts",JSON.stringify(lp));bill()}},"Add");
   $("#ar").onclick=()=>{S.rows.push(newRow());bill()};
   $("#sv").onclick=saveBill;
   $("#pr").onclick=()=>window.print();
@@ -245,9 +273,28 @@ async function saveBill(){
   if(!S.hs)return toast("Select a hospital first");
   const items=S.rows.filter(r=>r.p&&amt(r)>0).map(r=>({...r,amount:amt(r)}));
   if(!items.length)return toast("Add at least one item with unit and rate");
-  if(S.bills.some(b=>b.bill_no===S.no))return toast("Bill number "+S.no+" already exists");
-  const ok=await addBill({bill_no:S.no,order_no:S.ord,hospital_id:S.hosp.find(h=>String(h.id)===String(S.hs)).id,bill_date:S.d1,order_date:S.d1,items,total:S.total,paid:false});
-  if(ok){toast("Bill "+S.no+" saved");S.no++;resetBill();bill()}
+  if(S.bills.some(b=>b.bill_no===S.no && String(b.id)!==String(S.editId)))return toast("Bill number "+S.no+" already exists");
+  
+  const payload={bill_no:S.no,order_no:S.ord,hospital_id:S.hosp.find(h=>String(h.id)===String(S.hs)).id,bill_date:S.d1,order_date:S.d1,items,total:S.total};
+  
+  if(S.editId){
+    const existing=S.bills.find(x=>String(x.id)===String(S.editId));
+    payload.paid = existing.paid;
+    if(sb){
+      const {error}=await sb.from("bills").update(payload).eq("id",S.editId);
+      if(error)return toast("Update failed: "+error.message);
+    }
+    Object.assign(existing, payload);
+    persist();
+    toast("Bill updated");
+    S.editId=null;
+    resetBill();
+    bill();
+  } else {
+    payload.paid=false;
+    const ok=await addBill(payload);
+    if(ok){toast("Bill "+S.no+" saved");S.no++;resetBill();bill()}
+  }
 }
 
 /* ========== IMAGE DOWNLOAD (FIXED) ========== */
@@ -332,6 +379,7 @@ async function downloadImage(node, filename){
 
 function billSheetNode(b){
   const h=S.hosp.find(x=>String(x.id)===String(b.hospital_id))||{};
+  const hNameClean = h.name ? (h.name.startsWith("__DEL__") ? h.name.slice(9) : h.name) : "";
   const items=b.items||[];
   const rowsHtml=items.map((r,i)=>{
     const a=Number(r.amount||0),[rs,ps]=a?split(a):["",""];
@@ -342,7 +390,7 @@ function billSheetNode(b){
    '<div class="sh"><div class="m"><span>Mfg.Lic.: MFG/MD/2018/000099</span><span><u>Subject to Nalgonda Jurisdiction</u><br>TAX INVOICE</span><span>SSI No.010231200658<br>Mobile : 7013595136</span></div>'+
    '<h2>M/S. LAXMI GAUZE BANDAGE &amp; TEXTILES</h2><p>Mfrs. of Gauze Cloth, Bandage Cloth &amp; Roller Bandages</p>'+
    '<p style="font-size:12px"># 4-9, (V) A.P.Lingotam, (Mdl) Narketpally, Dist. Nalgonda - 508254, T.G.<br>GSTIN : 36AVHPG5668A1ZO</p></div>'+
-   '<div class="meta"><div class="box">To<div class="v" style="margin-top:4px">'+esc(h.name||"")+'</div></div>'+
+   '<div class="meta"><div class="box">To<div class="v" style="margin-top:4px">'+esc(hNameClean)+'</div></div>'+
    '<div class="box"><div class="mr">Bill. No.<div class="v">'+b.bill_no+'</div></div><div class="mr">Date<div class="v">'+fd(b.bill_date)+'</div></div><div class="mr">Order No.<div class="v">'+esc(b.order_no||"")+'</div></div></div></div>'+
    '<table id="items"><thead><tr><th style="width:30px">Sl. No.</th><th>PARTICULARS</th><th style="width:70px">Batch No.</th><th style="width:88px">D/Mfg.</th><th style="width:88px">D/Exp.</th><th style="width:52px">Unit</th><th style="width:62px">Rate</th><th style="width:58px">Rs.</th><th style="width:34px">Ps.</th></tr></thead><tbody>'+rowsHtml+'</tbody>'+
    '<tfoot><tr><td colspan="7" style="text-align:right;font-weight:800;font-size:16px;padding:6px">Total</td><td class="a">'+trs+'</td><td class="a">'+tps+'</td></tr></tfoot></table>'+
