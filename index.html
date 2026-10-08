@@ -171,7 +171,7 @@ function dash(){
   $("#lo").onclick=()=>{sessionStorage.clear();loginView()};
 }
 function hosp(){
-  app.innerHTML='<div class="top"><h1>Hospitals</h1></div>'+S.hosp.filter(h=>!(h.name||"").startsWith("__DEL__")).map(h=>'<div class="hbox" data-id="'+h.id+'" style="position:relative;cursor:pointer"><b>'+esc(h.name)+'</b>Pending due <span>'+inr(pend(h.id))+'</span><button class="btn r" style="position:absolute;right:14px;top:18px;padding:2px 12px;font-size:18px;font-weight:bold" data-del="'+h.id+'">-</button></div>').join("")+'<button class="fab" id="add" aria-label="Add hospital">+</button>';
+  app.innerHTML='<div class="top"><h1>Hospitals</h1></div>'+S.hosp.filter(h=>!(h.name||"").startsWith("__DEL__")).map(h=>'<div class="hbox" data-id="'+h.id+'" style="display:flex;justify-content:space-between;align-items:center;cursor:pointer"><div style="padding-right:10px"><b>'+esc(h.name)+'</b>Pending due <span>'+inr(pend(h.id))+'</span></div><button class="btn r" style="padding:2px 12px;font-size:18px;font-weight:bold;flex-shrink:0" data-del="'+h.id+'">-</button></div>').join("")+'<button class="fab" id="add" aria-label="Add hospital">+</button>';
   app.querySelectorAll(".hbox").forEach(b=>b.onclick=(e)=>{
     if(e.target.closest('[data-del]')){
       e.stopPropagation();
@@ -196,7 +196,7 @@ function hosp(){
 function hdetail(){
   const h=S.hosp.find(x=>String(x.id)===String(S.hid)),bs=S.bills.filter(b=>b.hospital_id===h.id);
   const hNameClean = (h.name||"").startsWith("__DEL__") ? h.name.slice(9) : (h.name||"");
-  app.innerHTML='<div class="top"><h2>History of '+esc(hNameClean)+'</h2></div><p>Pending due <b class="red">'+inr(pend(h.id))+'</b></p><div class="wrap"><table class="t"><tr><th>Date</th><th>Order ID</th><th>Amount</th><th>Status</th></tr>'+(bs.length?bs.map(b=>'<tr><td>'+fd(b.bill_date)+'</td><td>'+b.bill_no+'</td><td>'+inr(b.total)+'</td><td><button class="chip '+(b.paid?"p":"d")+'" data-id="'+b.id+'">'+(b.paid?"Paid":"Pending")+'</button><button class="btn o" style="padding:4px 8px;font-size:12px;margin-left:6px" data-edit="'+b.id+'">Edit</button></td></tr>').join(""):'<tr><td colspan="4">No bills yet.</td></tr>')+'</table></div>';
+  app.innerHTML='<div class="top"><h2>History of '+esc(hNameClean)+'</h2></div><p>Pending due <b class="red">'+inr(pend(h.id))+'</b></p><div class="wrap"><table class="t"><tr><th>Date</th><th>Order ID</th><th>Amount</th><th>Status</th></tr>'+(bs.length?bs.map(b=>'<tr><td>'+fd(b.bill_date)+'</td><td>'+b.bill_no+'</td><td>'+inr(b.total)+'</td><td><div style="display:flex;flex-wrap:wrap;gap:6px"><button class="chip '+(b.paid?"p":"d")+'" data-id="'+b.id+'">'+(b.paid?"Paid":"Pending")+'</button><button class="btn o" style="padding:4px 8px;font-size:12px" data-edit="'+b.id+'">Edit</button></div></td></tr>').join(""):'<tr><td colspan="4">No bills yet.</td></tr>')+'</table></div>';
   app.querySelectorAll(".chip").forEach(c=>c.onclick=()=>{
     const b=S.bills.find(x=>String(x.id)===c.dataset.id);
     modal('<h3>Confirm payment</h3><p>Mark order '+b.bill_no+' ('+inr(b.total)+') as <b>'+(b.paid?"Pending":"Paid")+'</b>?</p>',async()=>{await setPaid(b.id,!b.paid);hdetail()});
