@@ -72,10 +72,26 @@ body.po #printArea{display:block!important;max-width:720px;margin:0 auto;padding
 .mo:invalid:not(:focus)::-webkit-datetime-edit,.mo:invalid:not(:focus)::-webkit-calendar-picker-indicator{opacity:0}
 #items td{height:30px}
 .xr{border:0;background:none;color:var(--red);font-size:20px;font-weight:700;padding:0 4px}
-/* Overlay used during image capture - covers screen briefly */
 .capture-overlay{position:fixed;inset:0;background:#fff;z-index:99998}
 .capture-wrap{position:fixed;left:0;top:0;z-index:99999;width:780px;background:#fff;color:#1c2a7c;padding:10px;overflow:visible}
-@media print{body{background:#fff}#app>*:not(.wrap):not(.keep),nav,.fab,.toast,.noprint,.rowx,.step button{display:none!important}#app{padding:0;max-width:none}.wrap{overflow:visible}#sheet,.sheet{min-width:0;border:2px solid #000}#sheet input,#sheet select{border:0;-webkit-appearance:none;appearance:none;background:none;padding:0}}
+/* --- THE FIX IS ALL HERE --- */
+@page{size:A4 portrait;margin:0}
+@media print{
+  html,body{margin:0;background:#fff}
+  #app>*:not(.wrap):not(.keep),nav,.fab,.toast,.noprint,.rowx,.step button{display:none!important}
+  #app{padding:0;max-width:none}
+  .wrap{overflow:visible}
+  #sheet,.sheet{min-width:0;border:2px solid #000}
+  #sheet input,#sheet select{border:0;-webkit-appearance:none;appearance:none;background:none;padding:0}
+  
+  /* Adjusted for single A4 Sheet Compression */
+  body.po #printArea{max-width:none;width:194mm;margin:0 auto;padding:4mm 0 0}
+  #printArea .sheet{zoom:0.77;padding:6px;margin:0 0 16px !important;break-inside:avoid;page-break-inside:avoid}
+  #printArea .sheet:last-child{margin-bottom:0!important}
+  #printArea .sh h2{font-size:23px;margin:2px 0}
+  #printArea #items td,#printArea .sheet td{height:22px;padding:1px 2px}
+  #printArea .sig>div{min-height:60px;padding:4px}
+}
 </style>
 </head>
 <body>
@@ -250,7 +266,28 @@ function bill(){
   $("#addp").onclick=()=>modal('<h3>Add Product</h3><input id="pn" placeholder="Product name" style="margin-top:10px">',m=>{const v=m.querySelector("#pn").value.trim();if(v&&!PARTS.includes(v)){PARTS.push(v);const lp=JSON.parse(localStorage.getItem("lg_parts")||"[]");lp.push(v);localStorage.setItem("lg_parts",JSON.stringify(lp));bill()}},"Add");
   $("#ar").onclick=()=>{S.rows.push(newRow());bill()};
   $("#sv").onclick=saveBill;
-  $("#pr").onclick=()=>window.print();
+  $("#pr").onclick=()=>{
+    const pa=$("#printArea");
+    const mk=()=>{
+      const c=plain($("#sheet"));
+      c.id="";c.className="sheet";
+      const tb=c.querySelector("tbody");
+      while(tb&&tb.children.length<3){
+        const tr=document.createElement("tr");
+        tr.innerHTML='<td>'+(tb.children.length+1)+'</td><td></td><td></td><td></td><td></td><td></td><td></td><td class="a"></td><td class="a"></td>';
+        tb.appendChild(tr);
+      }
+      return c;
+    };
+    const c1=mk(),c2=mk();
+    c1.style.marginBottom="50px";
+    pa.innerHTML="";
+    pa.append(c1,c2);
+    const ap=()=>{document.body.classList.remove("po");pa.innerHTML="";window.removeEventListener("afterprint",ap)};
+    window.addEventListener("afterprint",ap);
+    document.body.classList.add("po");
+    setTimeout(()=>window.print(),50);
+  };
   $("#dl").onclick=()=>{
     const c=plain($("#sheet"));
     downloadImage(c,"Bill-"+S.no+".png");
