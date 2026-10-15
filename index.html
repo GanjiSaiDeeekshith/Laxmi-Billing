@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -8,6 +7,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Bitter:wght@600;800&family=Hind:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <style>
 :root{--ink:#1c2a7c;--paper:#eef1f8;--card:#fff;--line:#c9d0e6;--red:#c4262e;--green:#1f8a4c;--mut:#5a6390}
 *{box-sizing:border-box}
@@ -67,30 +67,39 @@ input,select{font:inherit;width:100%;padding:10px;border:1.5px solid var(--line)
 .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:90px;background:#171c3d;color:#fff;padding:10px 18px;border-radius:20px;z-index:10}
 #printArea{display:none}
 .dlb{margin-left:8px;border:1.5px solid var(--ink);background:#fff;color:var(--ink);border-radius:6px;padding:3px 9px;font-size:13px;font-weight:600;vertical-align:middle}
-body.po #app,body.po nav,body.po .fab,body.po .toast{display:none!important}
-body.po #printArea{display:block!important;max-width:720px;margin:0 auto;padding:10px}
 .mo:invalid:not(:focus)::-webkit-datetime-edit,.mo:invalid:not(:focus)::-webkit-calendar-picker-indicator{opacity:0}
 #items td{height:30px}
 .xr{border:0;background:none;color:var(--red);font-size:20px;font-weight:700;padding:0 4px}
 .capture-overlay{position:fixed;inset:0;background:#fff;z-index:99998}
 .capture-wrap{position:fixed;left:0;top:0;z-index:99999;width:780px;background:#fff;color:#1c2a7c;padding:10px;overflow:visible}
-/* --- THE FIX IS ALL HERE --- */
+/* --- PRINT CSS --- */
 @page{size:A4 portrait;margin:0}
 @media print{
   html,body{margin:0;background:#fff}
-  #app>*:not(.wrap):not(.keep),nav,.fab,.toast,.noprint,.rowx,.step button{display:none!important}
+  body.po #app,body.po nav,body.po .fab,body.po .toast,#app>*:not(.wrap):not(.keep),nav,.fab,.toast,.noprint,.rowx,.step button{display:none!important}
   #app{padding:0;max-width:none}
   .wrap{overflow:visible}
   #sheet,.sheet{min-width:0;border:2px solid #000}
   #sheet input,#sheet select{border:0;-webkit-appearance:none;appearance:none;background:none;padding:0}
-  
-  /* Adjusted for single A4 Sheet Compression */
-  body.po #printArea{max-width:none;width:194mm;margin:0 auto;padding:4mm 0 0}
-  #printArea .sheet{zoom:0.77;padding:6px;margin:0 0 16px !important;break-inside:avoid;page-break-inside:avoid}
+  /* Exactly 13cm bills perfectly filling A4 without cutting off */
+  body.po #printArea{display:block!important;max-width:none;width:194mm;margin:0 auto;padding:3mm 0 0}
+  #printArea .sheet{height:129mm;max-height:129mm;box-sizing:border-box;padding:5px 8px;margin:0 0 10mm !important;break-inside:avoid;page-break-inside:avoid;background:#fff;border:2px solid var(--ink);color:var(--ink);font-size:12px;overflow:hidden}
   #printArea .sheet:last-child{margin-bottom:0!important}
-  #printArea .sh h2{font-size:23px;margin:2px 0}
-  #printArea #items td,#printArea .sheet td{height:22px;padding:1px 2px}
-  #printArea .sig>div{min-height:60px;padding:4px}
+  #printArea .sh .m{display:flex;justify-content:space-between;font-weight:600;font-size:11px}
+  #printArea .sh h2{font-size:23px;margin:2px 0;font-family:Bitter,serif;color:var(--ink)}
+  #printArea .sh p{margin:1px 0;font-weight:600;font-size:11.5px}
+  #printArea .meta{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:4px 0}
+  #printArea .meta .box{padding:4px 6px;border:1.5px solid var(--ink);border-radius:6px}
+  #printArea .mr{display:grid;grid-template-columns:68px 1fr;align-items:center;gap:4px;padding:2px 0;border-bottom:1px solid var(--line)}
+  #printArea .mr:last-child{border:0}
+  #printArea #items{width:100%;border-collapse:collapse}
+  #printArea #items th{background:none;color:var(--ink);border:1px solid var(--ink);padding:3px 2px;font-size:12px;height:24px}
+  #printArea #items td{border:1px solid var(--ink);padding:2px 3px;height:28px;font-size:12px;text-align:center;vertical-align:middle}
+  #printArea #items td.a{text-align:right;padding:2px 4px;font-weight:600}
+  #printArea #items tfoot td{height:26px;padding:2px 4px}
+  #printArea .sig{display:grid;grid-template-columns:1fr 1fr;border:1.5px solid var(--ink);border-top:0}
+  #printArea .sig>div{padding:3px 8px;min-height:56px;font-size:12px}
+  #printArea .sig>div:first-child{border-right:1.5px solid var(--ink)}
 }
 </style>
 </head>
@@ -150,7 +159,7 @@ const hname=id=>{let n=(S.hosp.find(h=>h.id===id)||{}).name||"\u2014";return n.s
 function toast(m){const t=document.createElement("div");t.className="toast";t.textContent=m;document.body.append(t);setTimeout(()=>t.remove(),2200)}
 function modal(html,onOk,okText="OK"){
   const m=document.createElement("div");m.className="modal";
-  m.innerHTML='<div class="card">'+html+'<div class="acts"><button class="btn o" id="mc">Cancel</button><button class="btn '+(okText==='Delete'?'r':'')+'" id="mo">'+okText+'</button></div></div>';
+  m.innerHTML='<div class="card">'+html+'<div class="acts"><button class="btn o" id="mc">Cancel</button><button class="btn '+(okText==='Delete'?'r':'')+'\" id="mo">'+okText+'</button></div></div>';
   document.body.append(m);m.querySelector("#mc").onclick=()=>m.remove();
   m.querySelector("#mo").onclick=async()=>{if(await onOk(m)!==false)m.remove()};
   const i=m.querySelector("input");if(i)i.focus();
@@ -173,7 +182,7 @@ function loginView(){
 function nav(){
   const n=$("#nav");n.hidden=false;
   const cur=S.page==="hdetail"?"hosp":S.page;
-  n.innerHTML=[["dash","Dashboard"],["hosp","Hospitals"],["bill","New Bill"],["hist","History"]].map(([k,l])=>'<button class="'+(cur===k?"on":"")+'" data-k="'+k+'">'+l+'</button>').join("");
+  n.innerHTML=[["dash","Dashboard"],["hosp","Hospitals"],["bill","New Bill"],["hist","History"]].map(([k,l])=>'<button class="'+(cur===k?"on":"")+'\" data-k="'+k+'">'+l+'</button>').join("");
   n.querySelectorAll("button").forEach(b=>b.onclick=()=>go(b.dataset.k));
 }
 async function go(p,hid){S.page=p;S.hid=hid||null;nav();if(p!=="bill"&&S.loaded){try{await load()}catch(e){}}({dash,hosp,hdetail,bill,hist})[p]();window.scrollTo(0,0)}
@@ -224,12 +233,12 @@ function hdetail(){
   });
 }
 function hist(){
-  app.innerHTML='<div class="top keep"><h1>History</h1><div class="noprint" style="display:flex;gap:8px"><button class="btn o" id="hp">Print</button></div></div><div class="wrap"><table class="t"><tr><th>Date</th><th>Hospital</th><th>Amount</th><th>Status</th></tr>'+(S.bills.length?S.bills.map(b=>'<tr><td>'+fd(b.bill_date)+'</td><td>'+esc(hname(b.hospital_id))+'</td><td>'+inr(b.total)+'</td><td><b class="'+(b.paid?"green":"red")+'">'+(b.paid?"Paid":"Pending")+'</b><button class="dlb" data-id="'+b.id+'" title="Download this bill">\u2B07 Bill</button></td></tr>').join(""):'<tr><td colspan="4">No bills yet.</td></tr>')+'</table></div>';
+  app.innerHTML='<div class="top keep"><h1>History</h1><div class="noprint" style="display:flex;gap:8px"><button class="btn o" id="hp">Print</button></div></div><div class="wrap"><table class="t"><tr><th>Date</th><th>Hospital</th><th>Amount</th><th>Status</th></tr>'+(S.bills.length?S.bills.map(b=>'<tr><td>'+fd(b.bill_date)+'</td><td>'+esc(hname(b.hospital_id))+'</td><td>'+inr(b.total)+'</td><td><b class="'+(b.paid?"green":"red")+'">'+(b.paid?"Paid":"Pending")+'</b><button class="dlb" data-id="'+b.id+'" title="Download PDF">PDF</button></td></tr>').join(""):'<tr><td colspan="4">No bills yet.</td></tr>')+'</table></div>';
   $("#hp").onclick=()=>window.print();
   app.querySelectorAll(".dlb").forEach(btn=>btn.onclick=()=>{
     const b=S.bills.find(x=>String(x.id)===btn.dataset.id);
     if(!b)return;
-    downloadImage(billSheetNode(b),"Bill-"+b.bill_no+".png");
+    downloadPdf(billSheetNode(b),"Bill-"+b.bill_no+".pdf");
   });
 }
 
@@ -250,7 +259,7 @@ function bill(){
    '<tfoot><tr><td colspan="7" style="text-align:right;font-weight:800;font-size:16px;padding:6px">Total</td><td class="a" id="trs"></td><td class="a" id="tps"></td><td class="rowx" style="border:0"></td></tr></tfoot></table>'+
    '<div class="sig"><div>Rupees in words<div id="wd" style="font-weight:600;margin-top:6px"></div></div><div style="text-align:center"><b>For M/S. LAXMI GAUZE BANDAGE &amp; TEXTILES</b><br><br><br>Signature</div></div>'+
   '</div></div>'+
-  '<div class="acts2"><button class="btn o rowx" id="ar">+ Add row</button><button class="btn" id="sv">Save bill</button><button class="btn o" id="pr">Print</button><button class="btn o" id="dl">\uD83D\uDCF7 Download Image</button><button class="btn r" id="de">Delete</button></div>';
+  '<div class="acts2"><button class="btn o rowx" id="ar">+ Add row</button><button class="btn" id="sv">Save bill</button><button class="btn o" id="pr">2 PDF</button><button class="btn o" id="dl">PDF</button><button class="btn r" id="de">Delete</button></div>';
 
   const tb=$("#items tbody");
   tb.innerHTML=S.rows.map((r,i)=>rowHtml(r,i)).join("");
@@ -266,8 +275,10 @@ function bill(){
   $("#addp").onclick=()=>modal('<h3>Add Product</h3><input id="pn" placeholder="Product name" style="margin-top:10px">',m=>{const v=m.querySelector("#pn").value.trim();if(v&&!PARTS.includes(v)){PARTS.push(v);const lp=JSON.parse(localStorage.getItem("lg_parts")||"[]");lp.push(v);localStorage.setItem("lg_parts",JSON.stringify(lp));bill()}},"Add");
   $("#ar").onclick=()=>{S.rows.push(newRow());bill()};
   $("#sv").onclick=saveBill;
-  $("#pr").onclick=()=>{
-    const pa=$("#printArea");
+
+  /* ---- 2 PDF: generates 2-bill A4 PDF, saves as Bill-{no}print.pdf ---- */
+  $("#pr").onclick=async()=>{
+    const no=S.no||"";
     const mk=()=>{
       const c=plain($("#sheet"));
       c.id="";c.className="sheet";
@@ -280,17 +291,97 @@ function bill(){
       return c;
     };
     const c1=mk(),c2=mk();
-    c1.style.marginBottom="50px";
-    pa.innerHTML="";
-    pa.append(c1,c2);
-    const ap=()=>{document.body.classList.remove("po");pa.innerHTML="";window.removeEventListener("afterprint",ap)};
-    window.addEventListener("afterprint",ap);
-    document.body.classList.add("po");
-    setTimeout(()=>window.print(),50);
+
+    // Off-screen wrapper styled to match @media print layout
+    // (html2canvas ignores @media print, so we apply styles inline)
+    const wrap=document.createElement("div");
+    Object.assign(wrap.style,{
+      position:"fixed",left:"-9999px",top:"0",
+      width:"733px",        // 194mm @ 96dpi
+      background:"#fff",
+      padding:"11px 0 0",   // ~3mm top
+      display:"block",
+      fontFamily:"Hind,system-ui,sans-serif",
+      fontSize:"16px",
+      color:"#1c2a7c",
+      boxSizing:"border-box"
+    });
+
+    // Inline styles matching @media print .sheet rules
+    const shStyle={
+      height:"487px",       // 129mm @ 96dpi
+      maxHeight:"487px",
+      boxSizing:"border-box",
+      padding:"5px 8px",
+      marginBottom:"38px",  // ~10mm gap
+      background:"#fff",
+      border:"2px solid #1c2a7c",
+      color:"#1c2a7c",
+      fontSize:"12px",
+      overflow:"hidden",
+      display:"block",
+      width:"100%"
+    };
+
+    [c1,c2].forEach((c,i)=>{
+      Object.assign(c.style,shStyle);
+      if(i===1) c.style.marginBottom="0";
+
+      const sh=c.querySelector(".sh");
+      if(sh){
+        const m=sh.querySelector(".m");
+        if(m) Object.assign(m.style,{display:"flex",justifyContent:"space-between",fontWeight:"600",fontSize:"11px"});
+        const h2=sh.querySelector("h2");
+        if(h2) Object.assign(h2.style,{fontSize:"23px",margin:"2px 0",fontFamily:"Bitter,serif",color:"#1c2a7c"});
+        sh.querySelectorAll("p").forEach(p=>Object.assign(p.style,{margin:"1px 0",fontWeight:"600",fontSize:"11.5px"}));
+      }
+      const meta=c.querySelector(".meta");
+      if(meta){
+        Object.assign(meta.style,{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"6px",margin:"4px 0"});
+        meta.querySelectorAll(".box").forEach(b=>Object.assign(b.style,{padding:"4px 6px",border:"1.5px solid #1c2a7c",borderRadius:"6px"}));
+      }
+      c.querySelectorAll(".mr").forEach(r=>Object.assign(r.style,{display:"grid",gridTemplateColumns:"68px 1fr",alignItems:"center",gap:"4px",padding:"2px 0",borderBottom:"1px solid #c9d0e6"}));
+      const tbl=c.querySelector("table");
+      if(tbl){
+        Object.assign(tbl.style,{width:"100%",borderCollapse:"collapse"});
+        tbl.querySelectorAll("th").forEach(th=>Object.assign(th.style,{background:"none",color:"#1c2a7c",border:"1px solid #1c2a7c",padding:"3px 2px",fontSize:"12px",height:"24px"}));
+        tbl.querySelectorAll("tbody td").forEach(td=>Object.assign(td.style,{border:"1px solid #1c2a7c",padding:"2px 3px",height:"28px",fontSize:"12px",textAlign:"center",verticalAlign:"middle"}));
+        tbl.querySelectorAll("td.a").forEach(td=>Object.assign(td.style,{textAlign:"right",padding:"2px 4px",fontWeight:"600"}));
+        tbl.querySelectorAll("tfoot td").forEach(td=>Object.assign(td.style,{height:"26px",padding:"2px 4px"}));
+      }
+      const sig=c.querySelector(".sig");
+      if(sig){
+        Object.assign(sig.style,{display:"grid",gridTemplateColumns:"1fr 1fr",border:"1.5px solid #1c2a7c",borderTop:"0"});
+        const divs=sig.querySelectorAll(":scope>div");
+        divs.forEach(d=>Object.assign(d.style,{padding:"3px 8px",minHeight:"56px",fontSize:"12px"}));
+        if(divs[0]) divs[0].style.borderRight="1.5px solid #1c2a7c";
+      }
+      wrap.appendChild(c);
+    });
+
+    document.body.appendChild(wrap);
+    toast("Generating PDF...");
+    try{
+      const canvas=await html2canvas(wrap,{scale:2,useCORS:true,backgroundColor:"#fff",logging:false});
+      const {jsPDF}=window.jspdf;
+      const pdf=new jsPDF({orientation:"portrait",unit:"mm",format:"a4"});
+      const W=pdf.internal.pageSize.getWidth();
+      const H=pdf.internal.pageSize.getHeight();
+      const img=canvas.toDataURL("image/jpeg",0.95);
+      pdf.addImage(img,"JPEG",0,0,W,H);
+      pdf.save("Bill-"+no+"print.pdf");
+      toast("PDF downloaded!");
+    }catch(e){
+      console.error(e);
+      toast("PDF failed: "+(e.message||"unknown error"));
+    }finally{
+      document.body.removeChild(wrap);
+    }
   };
+
   $("#dl").onclick=()=>{
     const c=plain($("#sheet"));
-    downloadImage(c,"Bill-"+S.no+".png");
+    downloadPdf(c,"Bill-"+S.no+".pdf");
   };
   $("#de").onclick=()=>modal("<h3>Delete this bill?</h3><p>All entered data will be erased.</p>",()=>{resetBill();bill()},"Delete");
 }
@@ -311,9 +402,7 @@ async function saveBill(){
   const items=S.rows.filter(r=>r.p&&amt(r)>0).map(r=>({...r,amount:amt(r)}));
   if(!items.length)return toast("Add at least one item with unit and rate");
   if(S.bills.some(b=>b.bill_no===S.no && String(b.id)!==String(S.editId)))return toast("Bill number "+S.no+" already exists");
-  
   const payload={bill_no:S.no,order_no:S.ord,hospital_id:S.hosp.find(h=>String(h.id)===String(S.hs)).id,bill_date:S.d1,order_date:S.d1,items,total:S.total};
-  
   if(S.editId){
     const existing=S.bills.find(x=>String(x.id)===String(S.editId));
     payload.paid = existing.paid;
@@ -334,15 +423,7 @@ async function saveBill(){
   }
 }
 
-/* ========== IMAGE DOWNLOAD (FIXED) ========== */
-/*
- * The key fix: instead of placing the element off-screen (left:-9999px)
- * which html2canvas cannot capture, we place it VISIBLY on screen
- * at position fixed top:0 left:0 with a white overlay behind it.
- * We wait 2 animation frames for the browser to fully paint it,
- * then html2canvas captures the fully rendered visible element.
- * After capture we remove everything and trigger a PNG download.
- */
+/* ========== PDF DOWNLOAD ========== */
 function plain(src){
   const c=src.cloneNode(true);
   c.querySelectorAll(".rowx,.step button,.noprint").forEach(x=>x.remove());
@@ -358,28 +439,17 @@ function plain(src){
   return c;
 }
 
-async function downloadImage(node, filename){
-  // Show a loading toast
-  toast("Generating image...");
-
-  // 1. Create a white overlay to hide the page behind our render
+async function downloadPdf(node, filename){
+  toast("Generating PDF...");
   const overlay=document.createElement("div");
   overlay.className="capture-overlay";
-
-  // 2. Create the visible wrapper at top-left of viewport
   const wrap=document.createElement("div");
   wrap.className="capture-wrap";
   wrap.appendChild(node);
-
-  // 3. Add both to the DOM - element is now VISIBLE and PAINTED
   document.body.appendChild(overlay);
   document.body.appendChild(wrap);
-
-  // 4. Wait for TWO animation frames so the browser fully paints
   await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
-
   try{
-    // 5. Capture with html2canvas - element is visible so it works
     const canvas=await html2canvas(wrap,{
       scale: 2,
       backgroundColor: "#ffffff",
@@ -390,26 +460,22 @@ async function downloadImage(node, filename){
       x: 0,
       y: 0
     });
-
-    // 6. Convert canvas to PNG blob and trigger download
-    canvas.toBlob(function(blob){
-      if(!blob){toast("Could not generate image");return}
-      const url=URL.createObjectURL(blob);
-      const a=document.createElement("a");
-      a.href=url;
-      a.download=filename;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      setTimeout(()=>URL.revokeObjectURL(url),5000);
-      toast("Image downloaded!");
-    },"image/png");
+    if(!window.jspdf || !window.jspdf.jsPDF){throw new Error("jsPDF library not loaded")}
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF({orientation:"portrait",unit:"mm",format:"a4"});
+    const imgData = canvas.toDataURL("image/png");
+    const pageWidth = pdf.internal.pageSize.getWidth();
+    const pageHeight = pdf.internal.pageSize.getHeight();
+    const margin = 8;
+    const imgWidth = pageWidth - (margin * 2);
+    const imgHeight = (canvas.height * imgWidth) / canvas.width;
+    pdf.addImage(imgData, "PNG", margin, margin, imgWidth, Math.min(imgHeight, pageHeight - (margin * 2)));
+    pdf.save(filename);
+    toast("PDF downloaded!");
   }catch(e){
-    console.error("html2canvas error:",e);
+    console.error("PDF generation error:",e);
     toast("Download failed: "+(e.message||"unknown error"));
   }
-
-  // 7. Clean up - remove overlay and wrapper
   wrap.remove();
   overlay.remove();
 }
