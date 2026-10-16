@@ -249,7 +249,7 @@ function bill(){
   if(!S.rows.length)resetBill();
   app.innerHTML='<div class="top"><h1>New Bill</h1></div>'+
   '<div class="wrap"><div id="sheet">'+
-   '<div class="sh"><div class="m"><span>Mfg.Lic.: MFG/MD/2018/000099</span><span><u>Subject to Nalgonda Jurisdiction</u><br>TAX INVOICE</span><span>SSI No.010231200658<br>Mobile : 7013595136</span></div>'+
+   '<div class="sh"><div class="m"><span>Mfg.Lic.: MFG/MD/2018/000099</span><span><u>Subject to Nalgonda Jurisdiction</u><br>Bill of Supply</span><span>SSI No.010231200658<br>Mobile : 7013595136</span></div>'+
    '<h2>M/S. LAXMI GAUZE BANDAGE &amp; TEXTILES</h2><p>Mfrs. of Gauze Cloth, Bandage Cloth &amp; Roller Bandages</p>'+
    '<p style="font-size:12px"># 4-9, (V) A.P.Lingotam, (Mdl) Narketpally, Dist. Nalgonda - 508254, T.G.<br>GSTIN : 36AVHPG5668A1ZO</p></div>'+
    '<div class="meta"><div class="box">To<select id="hs" style="margin-top:4px"><option value="">Select hospital</option>'+S.hosp.filter(h=>!(h.name||"").startsWith("__DEL__") || String(S.hs)===String(h.id)).map(h=>{const cn=(h.name||"").startsWith("__DEL__")?h.name.slice(9):h.name;return '<option value="'+h.id+'" '+(String(S.hs)===String(h.id)?"selected":"")+'>'+esc(cn)+'</option>'}).join("")+'</select></div>'+
@@ -490,7 +490,7 @@ function billSheetNode(b){
   }).join("");
   const [trs,tps]=b.total?split(Number(b.total)):["",""];
   const html='<div class="sheet">'+
-   '<div class="sh"><div class="m"><span>Mfg.Lic.: MFG/MD/2018/000099</span><span><u>Subject to Nalgonda Jurisdiction</u><br>TAX INVOICE</span><span>SSI No.010231200658<br>Mobile : 7013595136</span></div>'+
+   '<div class="sh"><div class="m"><span>Mfg.Lic.: MFG/MD/2018/000099</span><span><u>Subject to Nalgonda Jurisdiction</u><br>Bill of Supply</span><span>SSI No.010231200658<br>Mobile : 7013595136</span></div>'+
    '<h2>M/S. LAXMI GAUZE BANDAGE &amp; TEXTILES</h2><p>Mfrs. of Gauze Cloth, Bandage Cloth &amp; Roller Bandages</p>'+
    '<p style="font-size:12px"># 4-9, (V) A.P.Lingotam, (Mdl) Narketpally, Dist. Nalgonda - 508254, T.G.<br>GSTIN : 36AVHPG5668A1ZO</p></div>'+
    '<div class="meta"><div class="box">To<div class="v" style="margin-top:4px">'+esc(hNameClean)+'</div></div>'+
