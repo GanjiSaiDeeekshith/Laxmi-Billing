@@ -81,7 +81,6 @@ input,select{font:inherit;width:100%;padding:10px;border:1.5px solid var(--line)
   .wrap{overflow:visible}
   #sheet,.sheet{min-width:0;border:2px solid #000}
   #sheet input,#sheet select{border:0;-webkit-appearance:none;appearance:none;background:none;padding:0}
-  /* Exactly 13cm bills perfectly filling A4 without cutting off */
   body.po #printArea{display:block!important;max-width:none;width:194mm;margin:0 auto;padding:3mm 0 0}
   #printArea .sheet{height:129mm;max-height:129mm;box-sizing:border-box;padding:5px 8px;margin:0 0 10mm !important;break-inside:avoid;page-break-inside:avoid;background:#fff;border:2px solid var(--ink);color:var(--ink);font-size:12px;overflow:hidden}
   #printArea .sheet:last-child{margin-bottom:0!important}
@@ -270,13 +269,31 @@ function bill(){
   $("#no").onchange=e=>S.no=+e.target.value||S.no;
   $("#mi").onclick=()=>{S.no=Math.max(1,S.no-1);$("#no").value=S.no};
   $("#pl").onclick=()=>{S.no++;$("#no").value=S.no};
-  tb.oninput=tb.onchange=e=>{const t=e.target,i=+t.dataset.i,k=t.dataset.k;if(!k)return;if(k==="batch"){const c=t.selectionStart;t.value=t.value.toUpperCase();try{t.setSelectionRange(c,c)}catch(x){}}S.rows[i][k]=t.value;calc()};
+
+  /* ---- row input handler with auto D/Exp ---- */
+  tb.oninput=tb.onchange=e=>{
+    const t=e.target,i=+t.dataset.i,k=t.dataset.k;
+    if(!k)return;
+    if(k==="batch"){const c=t.selectionStart;t.value=t.value.toUpperCase();try{t.setSelectionRange(c,c)}catch(x){}}
+    S.rows[i][k]=t.value;
+    /* Auto-fill D/Exp = D/Mfg + 2 years 11 months (35 months) */
+    if(k==="mfg"&&t.value){
+      const[y,m]=t.value.split("-").map(Number);
+      const tot=y*12+m-1+35;
+      const expVal=Math.floor(tot/12)+"-"+String(tot%12+1).padStart(2,"0");
+      S.rows[i].exp=expVal;
+      const expInp=tb.querySelector('input[data-i="'+i+'"][data-k="exp"]');
+      if(expInp)expInp.value=expVal;
+    }
+    calc();
+  };
+
   tb.onclick=e=>{const x=e.target.closest(".xr");if(!x)return;S.rows.splice(+x.dataset.i,1);if(!S.rows.length)S.rows.push(newRow());bill()};
   $("#addp").onclick=()=>modal('<h3>Add Product</h3><input id="pn" placeholder="Product name" style="margin-top:10px">',m=>{const v=m.querySelector("#pn").value.trim();if(v&&!PARTS.includes(v)){PARTS.push(v);const lp=JSON.parse(localStorage.getItem("lg_parts")||"[]");lp.push(v);localStorage.setItem("lg_parts",JSON.stringify(lp));bill()}},"Add");
   $("#ar").onclick=()=>{S.rows.push(newRow());bill()};
   $("#sv").onclick=saveBill;
 
-  /* ---- 2 PDF: generates 2-bill A4 PDF, saves as Bill-{no}print.pdf ---- */
+  /* ---- 2 PDF ---- */
   $("#pr").onclick=async()=>{
     const no=S.no||"";
     const mk=()=>{
@@ -291,29 +308,24 @@ function bill(){
       return c;
     };
     const c1=mk(),c2=mk();
-
-    // Off-screen wrapper styled to match @media print layout
-    // (html2canvas ignores @media print, so we apply styles inline)
     const wrap=document.createElement("div");
     Object.assign(wrap.style,{
       position:"fixed",left:"-9999px",top:"0",
-      width:"733px",        // 194mm @ 96dpi
+      width:"733px",
       background:"#fff",
-      padding:"11px 0 0",   // ~3mm top
+      padding:"11px 0 0",
       display:"block",
       fontFamily:"Hind,system-ui,sans-serif",
       fontSize:"16px",
       color:"#1c2a7c",
       boxSizing:"border-box"
     });
-
-    // Inline styles matching @media print .sheet rules
     const shStyle={
-      height:"487px",       // 129mm @ 96dpi
+      height:"487px",
       maxHeight:"487px",
       boxSizing:"border-box",
       padding:"5px 8px",
-      marginBottom:"38px",  // ~10mm gap
+      marginBottom:"38px",
       background:"#fff",
       border:"2px solid #1c2a7c",
       color:"#1c2a7c",
@@ -322,11 +334,9 @@ function bill(){
       display:"block",
       width:"100%"
     };
-
     [c1,c2].forEach((c,i)=>{
       Object.assign(c.style,shStyle);
       if(i===1) c.style.marginBottom="0";
-
       const sh=c.querySelector(".sh");
       if(sh){
         const m=sh.querySelector(".m");
@@ -358,7 +368,6 @@ function bill(){
       }
       wrap.appendChild(c);
     });
-
     document.body.appendChild(wrap);
     toast("Generating PDF...");
     try{
